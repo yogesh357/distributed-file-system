@@ -7,11 +7,19 @@ import (
 	"github.com/yogesh/filesystem/p2p"
 )
 
+func OnPeer(peer p2p.Peer) error {
+	peer.Close()
+	// return fmt.Errorf("Failed the onpeer func")
+	// fmt.Println("OnPeer function called for new peer connection")
+	return nil
+}
+
 func main() {
 	tcpOpts := p2p.TCPTransportOpts{
 		ListenAddr:    ":8080",
 		HandshakeFunc: p2p.NOPHandshakeFunc,
 		Decoder:       p2p.DefaultDecoder{},
+		OnPeer:        OnPeer,
 	}
 	tr := p2p.NewTCPTransport(tcpOpts)
 
