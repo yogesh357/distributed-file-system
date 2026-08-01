@@ -1,39 +1,51 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
 	"log"
+	"time"
 
 	"github.com/yogesh/filesystem/p2p"
 )
 
-func OnPeer(peer p2p.Peer) error {
-	peer.Close()
-	// return fmt.Errorf("Failed the onpeer func")
-	// fmt.Println("OnPeer function called for new peer connection")
-	return nil
+func makeServer(listenAddr string, nodes ...string) *FilerServer {
+	rcpTransportOpts := p2p.TCPTransportOpts{
+		ListenAddr:    listenAddr,
+		HandshakeFunc: p2p.NOPHandshakeFunc,
+		Decoder:       p2p.GOBDecoder{},
+	}
+	tcpTransport := p2p.NewTCPTransport(rcpTransportOpts)
+
+	fileServerOpts := FilerServerOpts{
+		StorageRoot:       listenAddr + "_network",
+		PathTransformFunc: CASPathTransformFunc,
+		Transport:         tcpTransport,
+		BootstrapNodes:    nodes,
+	}
+
+	s := NewFileServer(fileServerOpts)
+
+	tcpTransport.OnPeer = s.OnPeer
+
+	return s
+
 }
 
 func main() {
-	tcpOpts := p2p.TCPTransportOpts{
-		ListenAddr:    ":8080",
-		HandshakeFunc: p2p.NOPHandshakeFunc,
-		Decoder:       p2p.DefaultDecoder{},
-		OnPeer:        OnPeer,
-	}
-	tr := p2p.NewTCPTransport(tcpOpts)
+	s1 := makeServer(":5000", "")
+	s2 := makeServer(":4000", ":5000")
 
 	go func() {
-		for {
-			msg := <-tr.Consume()
-			fmt.Printf("Received message from %s: %s\n", msg.From, string(msg.Payload))
-		}
+		log.Fatal(s1.Start())
 	}()
+	time.Sleep(time.Second * 4)
 
-	if err := tr.ListenAndAccept(); err != nil {
-		log.Fatalf("failed to listen and accept: %v", err)
-	}
+	go s2.Start()
+	time.Sleep(time.Second * 4)
 
-	//? what is this
+	data := bytes.NewReader([]byte("hello world"))
+
+	s2.StoreData("myprivatekey", data)
+
 	select {}
 }
