@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/yogesh/filesystem/p2p"
 )
@@ -76,6 +77,15 @@ func (s *FilerServer) StoreData(key string, r io.Reader) error {
 		}
 	}
 
+	time.Sleep(3 * time.Second)
+
+	payload := []byte("THIS IS LARGE FILE")
+	for _, peer := range s.peers {
+		if err := peer.Send(payload); err != nil {
+			return err
+		}
+	}
+
 	return nil
 	// buf := new(bytes.Buffer)
 	// tee := io.TeeReader(r, buf)
@@ -125,6 +135,18 @@ func (s *FilerServer) loop() {
 				log.Println(err)
 			}
 			fmt.Printf("receive %s \n", string(msg.Payload.([]byte)))
+
+			peer, ok := s.peers[rpc.From]
+			if !ok {
+				panic("peer not found in peer map")
+			}
+			b := make([]byte, 1000)
+			if _, err := peer.Read(b); err != nil {
+				log.Panic(err)
+			}
+
+			fmt.Printf(" %s \n", string(b))
+			peer.(*p2p.TCPPeer).Wg.Done() //? what the fuck is this syntax
 
 			// if err := s.handleMessage(&m); err != nil {
 			// 	log.Println(err)
