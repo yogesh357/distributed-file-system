@@ -12,7 +12,7 @@ func makeServer(listenAddr string, nodes ...string) *FilerServer {
 	rcpTransportOpts := p2p.TCPTransportOpts{
 		ListenAddr:    listenAddr,
 		HandshakeFunc: p2p.NOPHandshakeFunc,
-		Decoder:       p2p.GOBDecoder{},
+		Decoder:       p2p.DefaultDecoder{},
 	}
 	tcpTransport := p2p.NewTCPTransport(rcpTransportOpts)
 
@@ -32,8 +32,8 @@ func makeServer(listenAddr string, nodes ...string) *FilerServer {
 }
 
 func main() {
-	s1 := makeServer(":5000", "")
-	s2 := makeServer(":4000", ":5000")
+	s1 := makeServer(":3000", "")
+	s2 := makeServer(":4000", ":3000")
 
 	go func() {
 		log.Fatal(s1.Start())

@@ -101,7 +101,7 @@ func (t *TCPTransport) startAcceptLoop() {
 		if err != nil {
 			fmt.Printf("TCP accept error : %s\n", err)
 		}
-		fmt.Printf("new incoming connection %+v\n", conn)
+		// fmt.Printf("new incoming connection %+v\n", conn)
 
 		go t.handleConn(conn, false)
 
@@ -134,7 +134,7 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 	// Read loop
 	rpc := RPC{}
 	for {
-		err := t.Decoder.Decode(conn, &rpc)
+		err = t.Decoder.Decode(conn, &rpc)
 
 		// if err == &net.OpError {
 		// 	// fmt.Printf("TCP connection closed : %s\n", err)
@@ -146,7 +146,7 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 			// continue
 			return
 		}
-		rpc.From = conn.RemoteAddr()
+		rpc.From = conn.RemoteAddr().String()
 		t.rpcch <- rpc
 	}
 
