@@ -15,6 +15,7 @@ Transport is anything that handles communication between nodes in the network.
 This can be of the form (TCP , UDP,webscoket).
 */
 type Transport interface {
+	Addr() string
 	ListenAndAccept() error
 	Consume() <-chan RPC
 	Close() error
