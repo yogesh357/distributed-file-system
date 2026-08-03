@@ -255,6 +255,12 @@ func (s *FilerServer) handleMessageGetFile(from string, msg MessageGetFile) erro
 	if err != nil {
 		return err
 	}
+
+	if rc, ok := r.(io.ReadCloser); ok {
+		fmt.Println("closing readCloser")
+		defer rc.Close()
+	}
+
 	peer, ok := s.peers[from]
 	if !ok {
 		return fmt.Errorf("peer (%s) could not be found in the peer list", from)
