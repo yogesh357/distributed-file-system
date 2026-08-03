@@ -19,20 +19,18 @@ type TCPPeer struct {
 	// if we dial a connection => outbound == false
 	outbound bool
 
-	Wg *sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	return &TCPPeer{
 		Conn:     conn,
 		outbound: outbound,
-		Wg:       &sync.WaitGroup{},
+		wg:       &sync.WaitGroup{},
 	}
 }
-
-// Close implements the Peer interface, which will close the underlying connection of peer.
-func (p *TCPPeer) Close() error {
-	return p.Conn.Close()
+func (p *TCPPeer) CloseStream() {
+	p.wg.Done()
 }
 
 type TCPTransportOpts struct {
@@ -70,9 +68,9 @@ func (p *TCPPeer) Send(b []byte) error {
 	return err
 }
 
-func (t *TCPPeer) RemoteAddr() net.Addr {
-	return t.Conn.RemoteAddr()
-}
+// func (t *TCPPeer) RemoteAddr() net.Addr {
+// 	return t.Conn.RemoteAddr()
+// }
 
 func (t *TCPTransport) Close() error {
 	return t.listener.Close()
@@ -152,9 +150,9 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 		rpc.From = conn.RemoteAddr().String()
 
 		if rpc.Stream {
-			peer.Wg.Add(1)
+			peer.wg.Add(1)
 			fmt.Printf("[%s] incoming stream , waiting ...\n", conn.RemoteAddr())
-			peer.Wg.Wait()
+			peer.wg.Wait()
 			fmt.Printf("[%s] stream closed , resuming read loop ...\n", conn.RemoteAddr())
 			continue
 		}
