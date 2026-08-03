@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"time"
 
@@ -43,25 +43,32 @@ func main() {
 
 	go s2.Start()
 	time.Sleep(time.Second * 4)
-	for i := 0; i < 10; i++ {
-		key := fmt.Sprintf("myprivatekey_%d", i)
-		data := bytes.NewReader([]byte("hello world !! hello world !!"))
-		if err := s2.Store(key, data); err != nil {
-			log.Fatal(err)
-		}
-		time.Sleep(5 * time.Millisecond)
+	//: LOOP
+
+	// for i := 0; i < 10; i++ {
+	// 	key := fmt.Sprintf("myprivatekey_%d", i)
+	// 	data := bytes.NewReader([]byte("hello world !! hello world !!"))
+	// 	if err := s2.Store(key, data); err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	time.Sleep(5 * time.Millisecond)
+	// }
+
+	// data := bytes.NewReader([]byte("MY BIG DATA"))
+	// if err := s2.Store("colol.jpg", data); err != nil {
+	// 	log.Fatal(err)
+	// }
+	// time.Sleep(5 * time.Millisecond)
+
+	r, err := s2.Get("colol.jpg")
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	// r, err := s2.Get("myprivatekey")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(b))
 
-	// b, err := ioutil.ReadAll(r)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println(string(b))
-
-	select {}
 }
