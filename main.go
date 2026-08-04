@@ -1,3 +1,8 @@
+/*
+We don't have Delete that will delete file from peers on the network
+
+*/
+
 package main
 
 import (
@@ -73,7 +78,7 @@ func main() {
 		if err := s3.Store(key, data); err != nil {
 			log.Fatal(err)
 		}
-		if err := s3.store.Delete(key); err != nil {
+		if err := s3.store.Delete(s3.ID, key); err != nil {
 			log.Fatal(err)
 		}
 

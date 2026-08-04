@@ -38,6 +38,7 @@ func TestPathTransformFunc(t *testing.T) {
 
 func TestStore(t *testing.T) {
 	s := newStore()
+	id := generateID()
 	defer teardown(t, s)
 
 	for i := 0; i < 50; i++ {
@@ -49,15 +50,15 @@ func TestStore(t *testing.T) {
 
 		// data := []byte("some jpg bytes ")
 
-		if _, err := s.writeStream(key, bytes.NewReader(data)); err != nil {
+		if _, err := s.writeStream(id, key, bytes.NewReader(data)); err != nil {
 			t.Error(err)
 		}
 
-		if ok := s.Has(key); !ok {
+		if ok := s.Has(id, key); !ok {
 			t.Errorf("key %s should exist", key)
 		}
 
-		_, r, err := s.Read(key)
+		_, r, err := s.Read(id, key)
 		if err != nil {
 			t.Error(err)
 		}
@@ -67,10 +68,10 @@ func TestStore(t *testing.T) {
 			t.Errorf("want %s have %s", data, b)
 
 		}
-		if err := s.Delete(key); err != nil {
+		if err := s.Delete(id, key); err != nil {
 			t.Error(err)
 		}
-		if ok := s.Has(key); ok {
+		if ok := s.Has(id, key); ok {
 			t.Errorf("key %s should not exist", key)
 		}
 	}
