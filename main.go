@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -18,6 +19,7 @@ func makeServer(listenAddr string, nodes ...string) *FilerServer {
 	tcpTransport := p2p.NewTCPTransport(rcpTransportOpts)
 
 	fileServerOpts := FilerServerOpts{
+		EncKey:            newEncryptionKey(),
 		StorageRoot:       listenAddr + "_network",
 		PathTransformFunc: CASPathTransformFunc,
 		Transport:         tcpTransport,
@@ -35,14 +37,24 @@ func makeServer(listenAddr string, nodes ...string) *FilerServer {
 func main() {
 	s1 := makeServer(":3000", "")
 	s2 := makeServer(":4000", ":3000")
+	s3 := makeServer(":5000", ":3000", ":4000")
 
-	go func() {
-		log.Fatal(s1.Start())
-	}()
-	time.Sleep(time.Second * 4)
+	// for this the s1 is blocking the s2 ? why ??
+	// go func() {
+	// 	log.Fatal(s1.Start())
+	// 	time.Sleep(500 * time.Millisecond)
+	// 	log.Fatal(s2.Start())
+	// }()
 
-	go s2.Start()
-	time.Sleep(time.Second * 4)
+	go func() { log.Fatal(s1.Start()) }()
+	time.Sleep(time.Millisecond * 400)
+
+	go func() { log.Fatal(s2.Start()) }()
+	time.Sleep(time.Millisecond * 400)
+
+	go func() { log.Fatal(s3.Start()) }()
+	time.Sleep(time.Second * 2)
+
 	//: LOOP
 
 	// for i := 0; i < 10; i++ {
@@ -54,21 +66,27 @@ func main() {
 	// 	time.Sleep(5 * time.Millisecond)
 	// }
 
-	// data := bytes.NewReader([]byte("MY BIG DATA"))
-	// if err := s2.Store("colol.jpg", data); err != nil {
-	// 	log.Fatal(err)
-	// }
-	// time.Sleep(5 * time.Millisecond)
+	for i := 0; i < 20; i++ {
 
-	r, err := s2.Get("colol.jpg")
-	if err != nil {
-		log.Fatal(err)
-	}
+		key := fmt.Sprintf("picture_%d.jpg", i)
+		data := bytes.NewReader([]byte("MY BIG DATA"))
+		if err := s3.Store(key, data); err != nil {
+			log.Fatal(err)
+		}
+		if err := s3.store.Delete(key); err != nil {
+			log.Fatal(err)
+		}
 
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		log.Fatal(err)
+		r, err := s3.Get(key)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		b, err := ioutil.ReadAll(r)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(b))
 	}
-	fmt.Println(string(b))
 
 }

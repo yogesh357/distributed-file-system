@@ -14,6 +14,7 @@ import (
 )
 
 type FilerServerOpts struct {
+	EncKey            []byte
 	StorageRoot       string
 	PathTransformFunc PathTransformFunc
 	Transport         p2p.Transport
@@ -42,16 +43,6 @@ func NewFileServer(opts FilerServerOpts) *FilerServer {
 		quitch:          make(chan struct{}),
 		peers:           make(map[string]p2p.Peer),
 	}
-}
-
-func (s *FilerServer) stream(msg *Message) error {
-	peers := []io.Writer{}
-	for _, peer := range s.peers {
-		peers = append(peers, peer)
-	}
-	mw := io.MultiWriter(peers...)
-
-	return gob.NewEncoder(mw).Encode(msg)
 }
 
 func (s *FilerServer) broadcast(msg *Message) error {
@@ -93,7 +84,7 @@ func (s *FilerServer) Get(key string) (io.Reader, error) {
 	fmt.Printf("[%s] dont have this file (%s) locally , fetching form network ...\n", s.Transport.Addr(), key)
 	msg := Message{
 		Payload: MessageGetFile{
-			Key: key,
+			Key: hashKey(key),
 		},
 	}
 
@@ -108,10 +99,12 @@ func (s *FilerServer) Get(key string) (io.Reader, error) {
 		var fileSize int64
 		//       connection ,
 		binary.Read(peer, binary.BigEndian, &fileSize)
-		n, err := s.store.Write(key, io.LimitReader(peer, fileSize))
+
+		n, err := s.store.WriteDecrypt(s.EncKey, key, io.LimitReader(peer, fileSize))
 		if err != nil {
 			return nil, err
 		}
+
 		fmt.Printf("[%s] received  (%d) bytes over the network from (%s\n", s.Transport.Addr(), n, key)
 
 		peer.CloseStream()
@@ -135,8 +128,8 @@ func (s *FilerServer) Store(key string, r io.Reader) error {
 
 	msg := Message{
 		Payload: MessageStoreFile{
-			Key:  key,
-			Size: size,
+			Key:  hashKey(key),
+			Size: size + 16,
 		},
 	}
 	if err := s.broadcast(&msg); err != nil {
@@ -145,17 +138,19 @@ func (s *FilerServer) Store(key string, r io.Reader) error {
 
 	time.Sleep(3 * time.Second)
 
+	peers := []io.Writer{}
+
 	for _, peer := range s.peers {
-		peer.Send([]byte{p2p.IncomingStream})
-		n, err := io.Copy(peer, fileBuffer)
-		if err != nil {
-			return err
-		}
-		fmt.Println("received and written bytes to disk ", n)
-
-		// fmt.Printf("[%s] received and written (%d) bytes to disk\n", s.Transport.Addr(), n)
-
+		peers = append(peers, peer)
 	}
+
+	mw := io.MultiWriter(peers...)
+	mw.Write([]byte{p2p.IncomingStream})
+	n, err := copyEncrypt(s.EncKey, fileBuffer, mw)
+	if err != nil {
+		return nil
+	}
+	fmt.Printf("[%s] received and written (%d) bytes to disk\n", s.Transport.Addr(), n)
 
 	return nil
 	// buf := new(bytes.Buffer)
@@ -303,6 +298,7 @@ func (s *FilerServer) bootstrapNetwork() error {
 			continue
 		}
 		go func(addr string) {
+			fmt.Printf("[%s] attemping to connect with remote (%s)", s.Transport.Addr(), addr)
 			if err := s.Transport.Dial(addr); err != nil {
 				log.Println("dial error :", err)
 			}
