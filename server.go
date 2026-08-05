@@ -227,8 +227,12 @@ func (s *FilerServer) loop() {
 			// }
 
 			// fmt.Printf(" %s \n", string(b))
-			// peer.(*p2p.TCPPeer).Wg.Done() //? what the fuck is this syntax
+			/*
+				# Type Assertion : It tells Go: "I know peer is an interface, but I want to treat it as its concrete underlying type: a pointer to a p2p.TCPPeer (*p2p.TCPPeer)."
 
+
+			*/
+			// peer.(*p2p.TCPPeer).Wg.Done()
 			// if err := s.handleMessage(&m); err != nil {
 			// 	log.Println(err)
 			// }
@@ -327,7 +331,9 @@ func (s *FilerServer) Start() error {
 	return nil
 }
 
-// ? what is need for this
+/*
+By calling gob.Register inside the init() function, you pre-register these types so gob knows how to handle them when they are transmitted inside the any interface field.
+*/
 func init() {
 	gob.Register(MessageStoreFile{})
 	gob.Register(MessageGetFile{})

@@ -99,6 +99,7 @@ func (t *TCPTransport) Dial(addr string) error {
 }
 
 func (t *TCPTransport) startAcceptLoop() {
+	//for { ... } (with no condition) is an infinite loop
 	for {
 		conn, err := t.listener.Accept()
 		if errors.Is(err, net.ErrClosed) {
