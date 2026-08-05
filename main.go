@@ -16,12 +16,12 @@ import (
 )
 
 func makeServer(listenAddr string, nodes ...string) *FilerServer {
-	rcpTransportOpts := p2p.TCPTransportOpts{
+	tcpTransportOpts := p2p.TCPTransportOpts{
 		ListenAddr:    listenAddr,
 		HandshakeFunc: p2p.NOPHandshakeFunc,
 		Decoder:       p2p.DefaultDecoder{},
 	}
-	tcpTransport := p2p.NewTCPTransport(rcpTransportOpts)
+	tcpTransport := p2p.NewTCPTransport(tcpTransportOpts)
 
 	fileServerOpts := FilerServerOpts{
 		EncKey:            newEncryptionKey(),
